@@ -1,7 +1,8 @@
 # AGENTS.md — GazeSHAP-VQA
 
-Condensed working rules. The full specification is [idea.md](idea.md); when the
-two disagree, `idea.md` wins and this file must be updated.
+Condensed working rules for this repository. A longer design note may exist
+locally and is not published; when the two disagree, update this file so the
+committed rules stay accurate.
 
 ## What the project does
 

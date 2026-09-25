@@ -1,0 +1,33 @@
+# Local CPU workflows. The CUDA image is built separately from Dockerfile.cuda;
+# compose here does not request a GPU, because the development machine has none.
+services:
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gazeshap-vqa:cpu
+    environment:
+      WANDB_MODE: offline
+      HF_HUB_OFFLINE: "1"
+      MPLCONFIGDIR: /tmp/mpl
+
+  smoke:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gazeshap-vqa:cpu
+    environment:
+      WANDB_MODE: offline
+      HF_HUB_OFFLINE: "1"
+      MPLCONFIGDIR: /tmp/mpl
+    volumes:
+      - ./data:/app/data
+      - hf-cache:/app/.cache/huggingface
+    command:
+      - python
+      - scripts/train_stage1.py
+      - --config
+      - configs/stage1_smoke.yaml
+
+volumes:
+  hf-cache:

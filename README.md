@@ -8,8 +8,7 @@ over the image is aligned with the human fixation heatmap recorded while people
 answered the **same question** (AiR-D eye-tracking data), before a reasoning
 chain and an answer are generated on top.
 
-The full specification lives in [idea.md](idea.md); the condensed rules for
-day-to-day work are in [AGENTS.md](AGENTS.md).
+Day-to-day working rules are in [AGENTS.md](AGENTS.md).
 
 ## Status
 
@@ -56,6 +55,23 @@ names at the top of `slurm/stage1.sbatch` and `slurm/setup_env.sh` first.
 The download fetches roughly 500 MB: AiR-D (154 MB), the GQA balanced validation
 questions (114 MB, extracted from a 1.5 GB zip over HTTP range requests) and 987
 Visual Genome images (143 MB, instead of GQA's 21.8 GB image archive).
+
+## Docker
+
+The CPU image runs the test suite and does not need a GPU:
+
+```bash
+docker compose build test
+docker compose run --rm test
+```
+
+The CUDA image is for a GPU node (target: one A100 40GB):
+
+```bash
+docker build -f Dockerfile.cuda -t gazeshap-vqa:cuda .
+docker run --gpus all -v "$PWD/data:/app/data" -v hf:/app/.cache/huggingface \
+  gazeshap-vqa:cuda
+```
 
 ## Tests
 

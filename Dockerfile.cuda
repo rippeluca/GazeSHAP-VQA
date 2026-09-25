@@ -1,0 +1,47 @@
+# CUDA 12.4 image for a single GPU node (target: A100 40GB).
+# Run with: docker run --gpus all gazeshap-vqa:cuda python scripts/train_stage1.py
+FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_SYSTEM_PYTHON=1 \
+    DEBIAN_FRONTEND=noninteractive \
+    HF_HOME=/app/.cache/huggingface \
+    WANDB_MODE=offline \
+    MPLCONFIGDIR=/tmp/mpl \
+    TOKENIZERS_PARALLELISM=false \
+    PATH="/usr/local/bin:${PATH}"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        git \
+        libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:0.11.32 /uv /uvx /usr/local/bin/
+
+RUN uv python install 3.11
+ENV UV_PYTHON=3.11 \
+    PATH="/root/.local/bin:${PATH}"
+
+WORKDIR /app
+
+COPY pyproject.toml README.md ./
+COPY src ./src
+
+ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cu124
+ARG EXTRAS=dev,train,eval
+RUN uv pip install --python 3.11 --extra-index-url "${TORCH_INDEX_URL}" ".[${EXTRAS}]" \
+    && ln -sf "$(uv python find 3.11)" /usr/local/bin/python \
+    && ln -sf "$(uv python find 3.11)" /usr/local/bin/python3
+
+COPY configs ./configs
+COPY scripts ./scripts
+COPY tests ./tests
+COPY slurm ./slurm
+COPY AGENTS.md ./AGENTS.md
+COPY data/README.md ./data/README.md
+COPY data/processed/splits ./data/processed/splits
+
+CMD ["python", "scripts/train_stage1.py", "--config", "configs/stage1_shap_gaze.yaml"]

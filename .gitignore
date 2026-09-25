@@ -8,6 +8,7 @@ __pycache__/
 htmlcov/
 
 # Data and artefacts are fetched/produced, never committed.
+ignored/
 data/raw/
 data/processed/fixation_maps/
 checkpoints/
@@ -17,7 +18,7 @@ outputs/
 logs/
 .cache/
 
-# The split files are committed on purpose (see idea.md 4.4).
+# The split files are committed on purpose so results stay reproducible.
 !data/processed/splits/
 
 .DS_Store
