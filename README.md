@@ -84,6 +84,18 @@ test that matters most is the gradient-flow assertion in
 `tests/test_shap_module.py`: it fails if the attribution stops being
 differentiable with respect to the LoRA parameters.
 
+## Site
+
+A short project page with a Data tab (sources, how the trials were recorded,
+descriptive statistics, and six example photographs with the human gaze
+overlay) lives in `site/` and is published with GitHub Pages from `main`.
+
+Regenerate the figures after the raw data changes:
+
+```bash
+python scripts/build_data_gallery.py
+```
+
 ## Data and licensing
 
 Images come from Visual Genome (CC BY 4.0) via GQA. See

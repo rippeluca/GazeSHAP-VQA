@@ -13,7 +13,6 @@ data/raw/
 data/processed/fixation_maps/
 checkpoints/
 wandb/
-site/
 outputs/
 logs/
 .cache/

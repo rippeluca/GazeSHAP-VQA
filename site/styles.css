@@ -1,0 +1,131 @@
+:root {
+  --ink: #1c1915;
+  --muted: #5c564c;
+  --line: #e4ddd2;
+  --paper: #f7f4ee;
+  --card: #fffdf9;
+  --accent: #8c3d2a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 17px/1.55 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+
+.top {
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+  position: sticky;
+  top: 0;
+}
+
+.top .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.mark { margin: 0; letter-spacing: 0.04em; font-size: 15px; }
+
+nav { display: flex; gap: 8px; }
+
+nav button {
+  font: inherit;
+  font-size: 15px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 4px 14px;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+nav button.active {
+  color: var(--ink);
+  border-color: var(--line);
+  background: var(--card);
+}
+
+main { padding: 36px 24px 64px; }
+
+h1 { font-weight: 500; font-size: 40px; line-height: 1.15; margin: 0 0 12px; }
+h2 { font-weight: 500; font-size: 26px; margin: 40px 0 10px; }
+h3 { font-weight: 500; font-size: 18px; margin: 0 0 8px; color: var(--muted); }
+
+.lead { font-size: 21px; line-height: 1.4; }
+
+a { color: var(--accent); }
+
+.hidden { display: none; }
+
+.note, footer { color: var(--muted); font-size: 15px; }
+
+.steps { padding-left: 1.2em; }
+.steps li { margin: 6px 0; }
+
+.cards, .stats, .split, .gallery {
+  display: grid;
+  gap: 12px;
+}
+
+.cards { grid-template-columns: repeat(3, 1fr); }
+.stats { grid-template-columns: repeat(4, 1fr); }
+.split { grid-template-columns: repeat(3, 1fr); margin-top: 12px; }
+.gallery { grid-template-columns: 1fr; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+
+.card, .stat, .example {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.stat strong, .card strong { display: block; font-size: 28px; font-weight: 500; }
+.stat span, .card span { color: var(--muted); font-size: 14px; }
+
+.bars { display: flex; flex-direction: column; gap: 6px; }
+
+.bar { display: grid; grid-template-columns: 88px 1fr 48px; gap: 8px; align-items: center; font-size: 14px; }
+.bar i {
+  display: block;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 99px;
+  opacity: 0.85;
+}
+.bar b { font-weight: 500; text-align: right; }
+
+.example { padding: 0; overflow: hidden; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; }
+.pair figure { margin: 0; }
+.pair img { width: 100%; display: block; }
+.pair figcaption {
+  padding: 6px 10px 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.example .text { padding: 14px 16px 16px; }
+.example .text p { margin: 6px 0; }
+.tag {
+  display: inline-block;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+footer { border-top: 1px solid var(--line); padding: 20px 24px 40px; }
+
+@media (max-width: 800px) {
+  .cards, .stats, .split, .two, .pair { grid-template-columns: 1fr; }
+  h1 { font-size: 32px; }
+}

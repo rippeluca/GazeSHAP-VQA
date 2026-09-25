@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GazeSHAP-VQA</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <p class="mark">GazeSHAP-VQA</p>
+      <nav>
+        <button type="button" data-tab="project" class="active">Project</button>
+        <button type="button" data-tab="data">Data</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="project" class="tab">
+      <h1>Right for the right reasons</h1>
+      <p class="lead">
+        A visual question-answering model trained so that its SHAP attribution
+        over the image matches the regions people looked at while answering the
+        same question.
+      </p>
+      <p>
+        Stage 1 aligns a differentiable SHAP map from Qwen3-VL-2B with human
+        fixation heatmaps from AiR-D. A reasoning chain and the final answer
+        come afterwards. The question under test is the method: whether gaze
+        supervision before the reasoning chain grounds the answer in the regions
+        that actually carry it.
+      </p>
+      <p>
+        Code and the training pipeline:
+        <a href="https://github.com/Acul01/GazeSHAP-VQA">Acul01/GazeSHAP-VQA</a>.
+      </p>
+      <h2>What “better” has to beat</h2>
+      <p>
+        On the held-out test split a uniform map scores AUC-Judd 0.500. A
+        Gaussian at the image centre already scores 0.724. Human agreement
+        between observers is 0.895. A result only counts inside that band, and
+        it has to keep answer accuracy.
+      </p>
+    </section>
+
+    <section id="data" class="tab hidden">
+      <h1>Data</h1>
+      <p class="lead">
+        Question-conditioned eye tracking on everyday scenes. One map per
+        question, not per image.
+      </p>
+
+      <h2>Sources</h2>
+      <div class="cards" id="sources"></div>
+      <p class="note">
+        Images are Visual Genome photographs under CC BY 4.0, used here via GQA.
+        Publishing a gaze overlay on them is allowed if Visual Genome, GQA and
+        AiR-D are credited. The AiR-D hold-out split (319 images, 406 questions)
+        still has no public eye-tracking, so it is not part of this set.
+      </p>
+
+      <h2>How a trial was recorded</h2>
+      <ol class="steps">
+        <li>The question is shown first. The participant reads it for as long as they want.</li>
+        <li>They press a button. The image appears for exactly three seconds, centred, spanning 30 degrees of visual angle.</li>
+        <li>Gaze during those three seconds is recorded with a Vive Pro Eye. Fixations are extracted with the Cluster Fix algorithm.</li>
+        <li>Then they answer. Twenty people took part; each question was answered by ten of them.</li>
+      </ol>
+      <p>
+        The first second is discarded. The experiment forces the opening
+        fixation onto the centre of the screen, so that second mostly records
+        the setup rather than the question. Training uses the 1–2&nbsp;s and
+        2–3&nbsp;s bins. Each fixation is drawn as a Gaussian of 9&nbsp;px
+        (about one degree) on a 256×256 map, then averaged down to the 16×16
+        grid the model is trained against.
+      </p>
+
+      <h2>What we kept</h2>
+      <div class="stats" id="counts"></div>
+      <p>
+        AiR-D ships 1,454 fixation maps. The set used here is the intersection
+        that also has temporal bins, scanpaths, consolidated answers and a
+        matching GQA question. Splits are cut by image, 70/10/20, seed 42.
+        A question-level split would show the model the same scene at training
+        time and at test time.
+      </p>
+      <div class="split" id="splits"></div>
+      <p id="image-sizes"></p>
+
+      <h2>Human accuracy</h2>
+      <p id="accuracy-summary"></p>
+      <div class="bars" id="accuracy-bars"></div>
+
+      <h2>Question types</h2>
+      <div class="two">
+        <div>
+          <h3>Structural</h3>
+          <div class="bars" id="structural-bars"></div>
+        </div>
+        <div>
+          <h3>Semantic</h3>
+          <div class="bars" id="semantic-bars"></div>
+        </div>
+      </div>
+      <p id="answers"></p>
+
+      <h2>Examples</h2>
+      <p id="gallery-note">
+        Six questions from the set. The heatmap is the aggregated gaze of the
+        ten participants during seconds 1–3, drawn on the photograph. It is not
+        a model prediction.
+      </p>
+      <div class="gallery" id="gallery"></div>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <p>
+      Images: Visual Genome, Krishna et al., IJCV 2017, CC BY 4.0.
+      Questions: GQA, Hudson &amp; Manning, CVPR 2019.
+      Eye tracking: AiR-D, Chen, Jiang, Yang &amp; Zhao, ECCV 2020.
+    </p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
