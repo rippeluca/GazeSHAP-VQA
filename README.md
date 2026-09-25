@@ -8,8 +8,6 @@ over the image is aligned with the human fixation heatmap recorded while people
 answered the **same question** (AiR-D eye-tracking data), before a reasoning
 chain and an answer are generated on top.
 
-Day-to-day working rules are in [AGENTS.md](AGENTS.md).
-
 ## Status
 
 Milestone 1 (Stage 1) is implemented and verified end to end on
