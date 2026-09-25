@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Data and artefacts are fetched/produced, never committed.
+data/raw/
+data/processed/fixation_maps/
+checkpoints/
+wandb/
+site/
+outputs/
+logs/
+.cache/
+
+# The split files are committed on purpose (see idea.md 4.4).
+!data/processed/splits/
+
+.DS_Store
+.ipynb_checkpoints/

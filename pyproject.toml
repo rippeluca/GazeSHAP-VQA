@@ -1,0 +1,79 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gazeshap-vqa"
+version = "0.1.0"
+description = "Gaze-supervised SHAP training for Visual Question Answering with explicit reasoning chains"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Luca" }]
+
+dependencies = [
+    "torch>=2.3",
+    "torchvision>=0.18",
+    "transformers>=4.57",
+    "peft>=0.12",
+    "numpy>=1.26",
+    "scipy>=1.13",
+    "opencv-python-headless>=4.10",
+    "Pillow>=10",
+    "pydantic>=2.0",
+    "omegaconf>=2.3",
+    "requests>=2.32",
+    "gdown>=5.2",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=5",
+    "ruff>=0.6",
+    "pre-commit>=3.8",
+    "captum>=0.7",
+]
+train = [
+    "trl>=0.9",
+    "accelerate>=0.33",
+    "wandb>=0.17",
+]
+eval = [
+    "shap>=0.45",
+    "torchmetrics>=1.4",
+    "scikit-image>=0.24",
+    "matplotlib>=3.9",
+]
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+# Markdown holds the spec; ruff would otherwise rewrite its fenced code blocks.
+extend-exclude = ["*.md", "notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ANN"]
+ignore = [
+    "ANN401", # allow Any in **kwargs passthrough
+    "B008",   # function call in default argument (typer/click style)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ANN"]
+"notebooks/*" = ["ANN", "E402"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = [
+    "slow: tests that download data or load the full VLM",
+    "gpu: tests that require CUDA",
+]

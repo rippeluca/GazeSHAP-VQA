@@ -1,0 +1,44 @@
+# Shared defaults. Stage configs inherit from this via `_base_: base.yaml`.
+seed: 42
+run_id: dev
+device: auto # auto | cpu | cuda | mps
+
+model:
+  name: Qwen/Qwen3-VL-2B-Instruct
+  # Mandatory for Stage 1: SDPA/FlashAttention have no double-backward rule.
+  attn_implementation: eager
+  gradient_checkpointing: false
+  dtype: bfloat16
+  # Visual token budget. Qwen3-VL uses patch_size=16 with spatial_merge_size=2,
+  # so one visual token covers 32x32 px -- not the 28x28 of the Qwen2-VL family.
+  min_visual_tokens: 256
+  max_visual_tokens: 512
+  freeze_vision: true
+  lora:
+    r: 16
+    alpha: 32
+    dropout: 0.05
+    target_modules: [q_proj, k_proj, v_proj, o_proj]
+
+data:
+  root: data
+  patch_grid_size: 16
+  map_size: 256
+  gaze_sigma_px: 9
+  temporal_bins: ["1s", "2s"]
+  use_correct_only: false
+  per_subject_augment: false
+  answer_format: open # open | mc
+  split_fractions: [0.7, 0.1, 0.2]
+  num_workers: 0
+
+shap:
+  n_baselines: 5
+  baseline: black # black | gaussian
+  attr_agg: sum # sum | abs
+
+logging:
+  wandb_project: gazeshap-vqa
+  wandb_mode: offline
+  log_every: 10
+  checkpoint_dir: checkpoints
