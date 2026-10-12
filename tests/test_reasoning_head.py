@@ -30,7 +30,7 @@ def test_messages_carry_the_system_prompt_and_one_image():
 
 
 def test_stage1_prompt_ends_with_the_answer_tag():
-    """Stage 1 teacher-forces up to <answer> so the next logit is the answer."""
+    """The prompt stops at <answer>; the dataset appends the answer tokens."""
     prompt = stage1_prompt(FakeProcessor(), "Is it raining?")
     assert prompt.endswith(ANSWER_OPEN)
 

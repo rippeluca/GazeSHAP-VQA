@@ -74,6 +74,19 @@ def main() -> int:
         images=[image],
         return_tensors="pt",
     ).to(args.device)
+    answer_ids = torch.tensor(
+        vlm.processor.tokenizer("red", add_special_tokens=False)["input_ids"],
+        dtype=torch.long,
+        device=args.device,
+    ).view(1, -1)
+    ones = torch.ones(
+        1, answer_ids.shape[1], dtype=encoded["attention_mask"].dtype, device=args.device
+    )
+    encoded["input_ids"] = torch.cat([encoded["input_ids"], answer_ids], dim=1)
+    encoded["attention_mask"] = torch.cat([encoded["attention_mask"], ones], dim=1)
+    if encoded.get("mm_token_type_ids") is not None:
+        zeros = torch.zeros_like(ones)
+        encoded["mm_token_type_ids"] = torch.cat([encoded["mm_token_type_ids"], zeros], dim=1)
 
     log.info(
         "pixel_values=%s image_grid_thw=%s input_ids=%s",
@@ -85,10 +98,6 @@ def main() -> int:
     shap = DifferentiableSHAPModule(
         vlm, patch_grid_size=args.patch_grid_size, n_baselines=args.n_baselines
     )
-    target = torch.tensor(
-        [vlm.processor.tokenizer("red", add_special_tokens=False)["input_ids"][0]]
-    )
-
     start = time.time()
     shap_map = shap(
         pixel_values=encoded["pixel_values"],
@@ -96,7 +105,8 @@ def main() -> int:
         input_ids=encoded["input_ids"],
         attention_mask=encoded["attention_mask"],
         mm_token_type_ids=encoded.get("mm_token_type_ids"),
-        target_token_id=target.to(args.device),
+        target_token_ids=answer_ids,
+        answer_lengths=torch.tensor([answer_ids.shape[1]], device=args.device),
         create_graph=True,
     )
     forward_s = time.time() - start

@@ -6,9 +6,9 @@ Two things vary per sample and neither can be stacked naively:
   the image's aspect ratio. Qwen expects the patches of all images in a batch
   *concatenated* along dim 0, with ``image_grid_thw`` of shape ``(B, 3)``
   describing how to split them again.
-* ``input_ids`` differ in length. Padding is applied on the **left** so that the
-  final position is the same for every sample, which is what the Stage 1
-  attribution target relies on.
+* ``input_ids`` differ in length. Padding is applied on the **left** so the
+  teacher-forced answer stays a suffix. Answer token IDs are padded on the
+  right.
 """
 
 from __future__ import annotations
@@ -41,11 +41,18 @@ def collate_gaze_vqa(batch: Sequence[dict], pad_token_id: int = 0) -> dict:
     input_ids = torch.full((len(batch), max_len), pad_token_id, dtype=torch.long)
     attention_mask = torch.zeros((len(batch), max_len), dtype=torch.long)
     mm_token_type_ids = torch.zeros((len(batch), max_len), dtype=torch.long)
+    answer_lengths = torch.tensor(
+        [item["target_token_ids"].shape[0] for item in batch], dtype=torch.long
+    )
+    max_answer = int(answer_lengths.max())
+    target_token_ids = torch.zeros((len(batch), max_answer), dtype=torch.long)
     for i, item in enumerate(batch):
         length = item["input_ids"].shape[0]
         input_ids[i, max_len - length :] = item["input_ids"]
         attention_mask[i, max_len - length :] = item["attention_mask"]
         mm_token_type_ids[i, max_len - length :] = item["mm_token_type_ids"]
+        n_answer = int(answer_lengths[i])
+        target_token_ids[i, :n_answer] = item["target_token_ids"]
 
     collated = {
         "pixel_values": torch.cat([item["pixel_values"] for item in batch], dim=0),
@@ -54,7 +61,8 @@ def collate_gaze_vqa(batch: Sequence[dict], pad_token_id: int = 0) -> dict:
         "attention_mask": attention_mask,
         "mm_token_type_ids": mm_token_type_ids,
         "gaze_map": torch.stack([item["gaze_map"] for item in batch], dim=0),
-        "target_token_id": torch.stack([item["target_token_id"] for item in batch], dim=0),
+        "target_token_ids": target_token_ids,
+        "answer_lengths": answer_lengths,
     }
     for key in TEXT_KEYS:
         collated[key] = [item[key] for item in batch]

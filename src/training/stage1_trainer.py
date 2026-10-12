@@ -32,7 +32,8 @@ MODEL_INPUT_KEYS = (
     "input_ids",
     "attention_mask",
     "mm_token_type_ids",
-    "target_token_id",
+    "target_token_ids",
+    "answer_lengths",
 )
 
 

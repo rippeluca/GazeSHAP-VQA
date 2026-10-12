@@ -257,25 +257,37 @@ class VLMWrapper(nn.Module):
         return (input_ids == image_token_id).long()
 
     @staticmethod
-    def target_logit(logits: torch.Tensor, target_token_id: torch.Tensor) -> torch.Tensor:
-        """Select the logit attribution is computed against.
+    def target_logit(
+        logits: torch.Tensor,
+        target_token_ids: torch.Tensor,
+        answer_lengths: torch.Tensor,
+    ) -> torch.Tensor:
+        """Sum the logits of the teacher-forced answer tokens.
 
-        The prompt ends with the opening ``<answer>`` tag and is left-padded, so
-        the final position predicts the answer's first token for every sample in
-        the batch.
+        Sequences are left-padded and the answer is a suffix, so answer token
+        ``j`` of a sample with ``n`` answer tokens sits at index ``L - n + j``.
+        The logit that predicts it is one position earlier. Padded answer slots
+        are masked out.
 
         Args:
             logits: ``(B, L, vocab)`` logits.
-            target_token_id: ``(B,)`` or scalar token IDs.
+            target_token_ids: ``(B, T)`` answer token IDs, right-padded.
+            answer_lengths: ``(B,)`` number of real answer tokens per sample.
 
         Returns:
-            ``(B,)`` scalar logits.
+            ``(B,)`` sum of the answer-token logits.
         """
-        last = logits[:, -1, :]
-        ids = torch.as_tensor(target_token_id, device=last.device).reshape(-1)
-        if ids.numel() == 1 and last.shape[0] > 1:
-            ids = ids.expand(last.shape[0])
-        return last.gather(1, ids.unsqueeze(1).long()).squeeze(1)
+        batch, length, _vocab = logits.shape
+        width = target_token_ids.shape[1]
+        offsets = torch.arange(width, device=logits.device)
+        lengths = answer_lengths.to(device=logits.device).long().view(batch, 1)
+        positions = (length - lengths - 1 + offsets.view(1, width)).clamp(0, length - 1)
+        mask = offsets.view(1, width) < lengths
+        chosen = positions.unsqueeze(-1).expand(-1, -1, logits.shape[-1])
+        step_logits = logits.gather(1, chosen)
+        token_ids = target_token_ids.to(device=logits.device).long().unsqueeze(-1)
+        selected = step_logits.gather(2, token_ids).squeeze(-1)
+        return (selected * mask).sum(dim=-1)
 
     def save_adapter(self, path: Path | str) -> None:
         """Write the LoRA adapter to disk.

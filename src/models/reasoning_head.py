@@ -1,9 +1,9 @@
 """Prompt construction and answer parsing for the ``<think>``/``<answer>`` format.
 
-Stage 1 never generates: it teacher-forces the prompt up to and including the
-opening ``<answer>`` tag so that the next-token logit is the logit of the
-answer's first token, which is what attribution is taken against (idea.md 10.3).
-Stage 2 uses the same system prompt but lets the model produce the whole chain.
+Stage 1 never generates. The prompt ends on the opening ``<answer>`` tag and
+the ground-truth answer is teacher-forced after it. Attribution targets the sum
+of the logits of every answer token. Stage 2 uses the same system prompt but
+lets the model produce the whole chain.
 """
 
 from __future__ import annotations
@@ -61,9 +61,9 @@ def build_messages(question: str) -> list[dict]:
 def stage1_prompt(processor: ProcessorMixin, question: str) -> str:
     """Render the Stage 1 prompt, ending with the opening ``<answer>`` tag.
 
-    The model is thereby forced into the position where its next token is the
-    answer's first token, without requiring a reasoning chain that Stage 1 has
-    no supervision for.
+    The ground-truth answer tokens are appended by the dataset, so each answer
+    token has a logit without a reasoning chain that Stage 1 has no supervision
+    for.
 
     Args:
         processor: A Qwen3-VL processor with a chat template.

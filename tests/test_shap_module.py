@@ -220,12 +220,19 @@ def test_wrapper_allows_unsafe_config_when_not_required():
     VLMWrapper(model, require_double_backward=False)
 
 
-def test_target_logit_selects_the_last_position():
-    logits = torch.zeros(2, 5, 10)
-    logits[0, -1, 3] = 7.0
-    logits[1, -1, 8] = -2.0
-    selected = VLMWrapper.target_logit(logits, torch.tensor([3, 8]))
-    assert selected.tolist() == [7.0, -2.0]
+def test_target_logit_sums_the_answer_suffix():
+    logits = torch.zeros(2, 6, 10)
+    # Sample 0 has two answer tokens, predicted from positions 3 and 4.
+    logits[0, 3, 3] = 1.0
+    logits[0, 4, 4] = 2.0
+    # Sample 1 has one answer token, predicted from position 4.
+    logits[1, 4, 8] = -2.0
+    selected = VLMWrapper.target_logit(
+        logits,
+        torch.tensor([[3, 4], [8, 0]]),
+        torch.tensor([2, 1]),
+    )
+    assert selected.tolist() == [3.0, -2.0]
 
 
 def test_freeze_and_unfreeze_vision_lora():

@@ -28,7 +28,7 @@ def test_item_contract(dataset):
         "attention_mask",
         "mm_token_type_ids",
         "gaze_map",
-        "target_token_id",
+        "target_token_ids",
         "answer_str",
         "question",
         "qid",
@@ -43,7 +43,10 @@ def test_item_contract(dataset):
     assert item["input_ids"].shape == item["mm_token_type_ids"].shape
     assert item["gaze_map"].shape == (8, 8)
     assert item["gaze_map"].dtype == torch.float32
-    assert item["target_token_id"].dtype == torch.long
+    assert item["target_token_ids"].dtype == torch.long
+    assert item["input_ids"][-item["target_token_ids"].shape[0] :].tolist() == item[
+        "target_token_ids"
+    ].tolist()
     assert isinstance(item["qid"], str)
 
 
@@ -111,23 +114,28 @@ def test_collate_concatenates_patches_and_stacks_grids(dataset):
     )
     assert batch["image_grid_thw"].shape == (2, 3)
     assert batch["gaze_map"].shape == (2, 8, 8)
-    assert batch["target_token_id"].shape == (2,)
+    assert batch["target_token_ids"].shape[0] == 2
+    assert batch["answer_lengths"].tolist() == [
+        a["target_token_ids"].shape[0],
+        b["target_token_ids"].shape[0],
+    ]
     assert batch["qid"] == [dataset[0]["qid"], dataset[1]["qid"]]
 
 
 def test_collate_left_pads(dataset):
     a, b = dataset[0], dataset[1]
     b = dict(b)
-    b["input_ids"] = b["input_ids"][:-3]
-    b["attention_mask"] = b["attention_mask"][:-3]
-    b["mm_token_type_ids"] = b["mm_token_type_ids"][:-3]
+    b["input_ids"] = a["input_ids"][:-3]
+    b["attention_mask"] = a["attention_mask"][:-3]
+    b["mm_token_type_ids"] = a["mm_token_type_ids"][:-3]
 
     batch = collate_gaze_vqa([a, b], pad_token_id=0)
     length = batch["input_ids"].shape[1]
+    pad = length - b["input_ids"].shape[0]
     assert length == a["input_ids"].shape[0]
     # The shorter sequence is padded on the left, so its real tokens end flush right.
-    assert batch["attention_mask"][1, :3].tolist() == [0, 0, 0]
-    assert batch["attention_mask"][1, 3:].tolist() == [1] * (length - 3)
+    assert batch["attention_mask"][1, :pad].tolist() == [0] * pad
+    assert batch["attention_mask"][1, pad:].tolist() == [1] * (length - pad)
     assert batch["input_ids"][1, -1] == b["input_ids"][-1]
     assert batch["input_ids"][0, -1] == a["input_ids"][-1]
 

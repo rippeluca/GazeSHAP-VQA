@@ -31,7 +31,8 @@ class GazeVQADataset(Dataset):
     """AiR-D questions with their images and human fixation grids.
 
     Each item carries everything Stage 1 needs: the Qwen patch tensor, the
-    tokenised prompt ending in ``<answer>``, the token the attribution targets,
+    tokenised prompt ending in ``<answer>`` plus the teacher-forced answer, the
+    answer token IDs the attribution sums over,
     and the human gaze grid to align against.
     """
 
@@ -122,17 +123,22 @@ class GazeVQADataset(Dataset):
         full = fixation_map_from_scanpaths([scanpath], self.air_d.image_size(qid))
         return downsample_to_grid(full, self.patch_grid_size)
 
-    def _target_token_id(self, answer: str) -> int:
-        """First token of the ground-truth answer, which attribution targets.
+    def _answer_token_ids(self, answer: str) -> torch.Tensor:
+        """Token IDs of the ground-truth answer, which attribution sums over.
 
         Args:
             answer: Ground-truth answer string.
 
         Returns:
-            Token ID of the answer's first token.
+            One-dimensional token IDs, without special tokens.
+
+        Raises:
+            ValueError: If the answer tokenises to nothing.
         """
         ids = self.processor.tokenizer(answer, add_special_tokens=False)["input_ids"]
-        return int(ids[0])
+        if not ids:
+            raise ValueError(f"answer {answer!r} produced no tokens")
+        return torch.tensor(ids, dtype=torch.long)
 
     def __getitem__(self, index: int) -> dict:
         """Return one training item.
@@ -147,6 +153,7 @@ class GazeVQADataset(Dataset):
         qid, subject = self.items[index]
         record = self.air_d.question(qid)
         answer = str(record["answer"])
+        answer_ids = self._answer_token_ids(answer)
 
         with Image.open(self.air_d.image_path(qid)) as im:
             image = im.convert("RGB")
@@ -168,14 +175,18 @@ class GazeVQADataset(Dataset):
                 else torch.zeros_like(encoded["input_ids"][0])
             )
 
+        input_ids = torch.cat([encoded["input_ids"][0], answer_ids])
+        attention_mask = torch.cat([encoded["attention_mask"][0], torch.ones_like(answer_ids)])
+        mm_token_type_ids = torch.cat([mm_token_type_ids, torch.zeros_like(answer_ids)])
+
         return {
             "pixel_values": encoded["pixel_values"],
             "image_grid_thw": encoded["image_grid_thw"][0],
-            "input_ids": encoded["input_ids"][0],
-            "attention_mask": encoded["attention_mask"][0],
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
             "mm_token_type_ids": mm_token_type_ids,
             "gaze_map": torch.from_numpy(self._gaze_grid(qid, subject)),
-            "target_token_id": torch.tensor(self._target_token_id(answer), dtype=torch.long),
+            "target_token_ids": answer_ids,
             "answer_str": answer,
             "question": str(record["question"]),
             "qid": qid,

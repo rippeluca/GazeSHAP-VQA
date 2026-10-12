@@ -112,7 +112,8 @@ class DifferentiableSHAPModule(nn.Module):
         image_grid_thw: torch.Tensor,
         input_ids: torch.Tensor,
         attention_mask: torch.Tensor,
-        target_token_id: torch.Tensor,
+        target_token_ids: torch.Tensor,
+        answer_lengths: torch.Tensor,
         mm_token_type_ids: torch.Tensor | None = None,
         create_graph: bool = True,
     ) -> torch.Tensor:
@@ -123,7 +124,8 @@ class DifferentiableSHAPModule(nn.Module):
             image_grid_thw: ``(B, 3)`` grid metadata.
             input_ids: ``(B, L)`` token IDs.
             attention_mask: ``(B, L)`` attention mask.
-            target_token_id: ``(B,)`` token IDs attribution targets.
+            target_token_ids: ``(B, T)`` teacher-forced answer token IDs.
+            answer_lengths: ``(B,)`` number of real answer tokens per sample.
             mm_token_type_ids: ``(B, L)`` image-position markers.
             create_graph: Keep the graph so the result stays differentiable with
                 respect to the model parameters. Required in Stage 1, wasteful
@@ -149,7 +151,7 @@ class DifferentiableSHAPModule(nn.Module):
                 attention_mask=attention_mask,
                 mm_token_type_ids=mm_token_type_ids,
             )
-            target = self.vlm.target_logit(logits, target_token_id)
+            target = self.vlm.target_logit(logits, target_token_ids, answer_lengths)
             (grad,) = torch.autograd.grad(target.sum(), interpolated, create_graph=create_graph)
             total = total + grad * (pixel_values - baseline)
 
@@ -162,7 +164,8 @@ class DifferentiableSHAPModule(nn.Module):
         image_grid_thw: torch.Tensor,
         input_ids: torch.Tensor,
         attention_mask: torch.Tensor,
-        target_token_id: torch.Tensor,
+        target_token_ids: torch.Tensor,
+        answer_lengths: torch.Tensor,
         mm_token_type_ids: torch.Tensor | None = None,
         create_graph: bool = True,
     ) -> torch.Tensor:
@@ -173,7 +176,8 @@ class DifferentiableSHAPModule(nn.Module):
             image_grid_thw: ``(B, 3)`` grid metadata.
             input_ids: ``(B, L)`` token IDs.
             attention_mask: ``(B, L)`` attention mask.
-            target_token_id: ``(B,)`` token IDs attribution targets.
+            target_token_ids: ``(B, T)`` teacher-forced answer token IDs.
+            answer_lengths: ``(B,)`` number of real answer tokens per sample.
             mm_token_type_ids: ``(B, L)`` image-position markers.
             create_graph: Keep the second-order graph; see :meth:`attributions`.
 
@@ -186,7 +190,8 @@ class DifferentiableSHAPModule(nn.Module):
             image_grid_thw,
             input_ids,
             attention_mask,
-            target_token_id,
+            target_token_ids,
+            answer_lengths,
             mm_token_type_ids,
             create_graph=create_graph,
         )

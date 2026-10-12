@@ -171,7 +171,8 @@ def dummy_batch(
         "input_ids": input_ids,
         "attention_mask": torch.ones_like(input_ids),
         "mm_token_type_ids": mm_token_type_ids,
-        "target_token_id": torch.full((batch_size,), 7, dtype=torch.long),
+        "target_token_ids": torch.full((batch_size, 1), 7, dtype=torch.long),
+        "answer_lengths": torch.ones(batch_size, dtype=torch.long),
     }
 
 
