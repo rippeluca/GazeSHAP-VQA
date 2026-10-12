@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 168" role="img" aria-labelledby="pipelineTitle pipelineDesc">
+  <title id="pipelineTitle">Stage 1 pipeline</title>
+  <desc id="pipelineDesc">Question and image enter Qwen3-VL. The logit after the answer tag is attributed with expected gradients. The resulting map is compared with human gaze, and only the LoRA weights are updated.</desc>
+  <rect width="920" height="168" fill="#f7f4ee"/>
+  <g>
+    <rect x="16" y="36" width="128" height="72" rx="8" fill="#fffdf9" stroke="#e4ddd2"/>
+    <text x="80" y="68" text-anchor="middle" font-size="14" font-family="Palatino, Georgia, serif" fill="#1c1915">Question</text>
+    <text x="80" y="88" text-anchor="middle" font-size="14" font-family="Palatino, Georgia, serif" fill="#1c1915">and image</text>
+  </g>
+  <g>
+    <rect x="176" y="36" width="128" height="72" rx="8" fill="#fffdf9" stroke="#e4ddd2"/>
+    <text x="240" y="68" text-anchor="middle" font-size="14" font-family="Palatino, Georgia, serif" fill="#1c1915">Qwen3-VL-2B</text>
+    <text x="240" y="88" text-anchor="middle" font-size="13" font-family="Palatino, Georgia, serif" fill="#1c1915">LoRA on attention</text>
+  </g>
+  <g>
+    <rect x="336" y="36" width="140" height="72" rx="8" fill="#fffdf9" stroke="#e4ddd2"/>
+    <text x="406" y="64" text-anchor="middle" font-size="14" font-family="Palatino, Georgia, serif" fill="#1c1915">Logit after</text>
+    <text x="406" y="84" text-anchor="middle" font-size="14" font-family="Palatino, Georgia, serif" fill="#1c1915">&lt;answer&gt;</text>
+  </g>
+  <g>
+    <rect x="508" y="28" width="150" height="88" rx="8" fill="#fffdf9" stroke="#e4ddd2"/>
+    <text x="583" y="60" text-anchor="middle" font-size="14" font-family="Palatino, Georgia, serif" fill="#1c1915">Expected</text>
+    <text x="583" y="78" text-anchor="middle" font-size="14" font-family="Palatino, Georgia, serif" fill="#1c1915">gradients</text>
+    <text x="583" y="98" text-anchor="middle" font-size="13" font-family="Palatino, Georgia, serif" fill="#1c1915">16 by 16 SHAP</text>
+  </g>
+  <g>
+    <rect x="690" y="28" width="150" height="88" rx="8" fill="#fffdf9" stroke="#e4ddd2"/>
+    <text x="765" y="60" text-anchor="middle" font-size="14" font-family="Palatino, Georgia, serif" fill="#1c1915">Match human</text>
+    <text x="765" y="78" text-anchor="middle" font-size="14" font-family="Palatino, Georgia, serif" fill="#1c1915">gaze, 16 by 16</text>
+    <text x="765" y="98" text-anchor="middle" font-size="13" font-family="Palatino, Georgia, serif" fill="#1c1915">update LoRA only</text>
+  </g>
+  <g fill="#8c3d2a">
+    <polygon points="168,72 148,66 148,78"/>
+    <polygon points="328,72 308,66 308,78"/>
+    <polygon points="500,72 480,66 480,78"/>
+    <polygon points="682,72 662,66 662,78"/>
+  </g>
+  <text x="460" y="150" text-anchor="middle" font-size="13" font-family="Palatino, Georgia, serif" fill="#5c564c">The answer text is not the training target. The gaze map is.</text>
+</svg>

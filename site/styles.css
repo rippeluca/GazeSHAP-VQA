@@ -35,7 +35,7 @@ body {
 
 .mark { margin: 0; letter-spacing: 0.04em; font-size: 15px; }
 
-nav { display: flex; gap: 8px; }
+nav { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 
 nav button {
   font: inherit;
@@ -106,8 +106,14 @@ a { color: var(--accent); }
 
 .example { padding: 0; overflow: hidden; }
 .pair { display: grid; grid-template-columns: 1fr 1fr; }
-.pair figure { margin: 0; }
+.pair figure, .pair > div { margin: 0; }
 .pair img { width: 100%; display: block; }
+.shot {
+  margin: 0;
+  padding: 6px 10px 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
 .pair figcaption {
   padding: 6px 10px 10px;
   font-size: 13px;
@@ -121,6 +127,32 @@ a { color: var(--accent); }
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--accent);
+}
+
+.diagram {
+  margin: 18px 0 8px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.diagram > img { width: 100%; display: block; }
+.diagram > figcaption, .diagram .pair figcaption {
+  padding: 8px 14px 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.formula {
+  font-size: 16px;
+  padding: 8px 0 4px;
+}
+.refs { padding-left: 1.4em; }
+.refs li { margin: 10px 0; font-size: 15px; scroll-margin-top: 72px; }
+.refs li:target { background: #f3e4dc; }
+
+code {
+  font-family: "Iowan Old Style", Palatino, Georgia, serif;
+  font-size: 0.95em;
 }
 
 footer { border-top: 1px solid var(--line); padding: 20px 24px 40px; }

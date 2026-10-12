@@ -12,6 +12,7 @@
       <p class="mark">GazeSHAP-VQA</p>
       <nav>
         <button type="button" data-tab="project" class="active">Project</button>
+        <button type="button" data-tab="method">Method</button>
         <button type="button" data-tab="data">Data</button>
       </nav>
     </div>
@@ -43,6 +44,178 @@
         between observers is 0.895. A result only counts inside that band, and
         it has to keep answer accuracy.
       </p>
+    </section>
+
+    <section id="method" class="tab hidden">
+      <h1>Method</h1>
+      <p class="lead">
+        Stage 1 does not train the answer. It trains the model so that the
+        regions supporting the answer are the regions people looked at.
+      </p>
+      <p>
+        The supervision signal is a SHAP map
+        <a href="#ref-lundberg">[1]</a> for the logit of the answer’s first
+        token, matched to the human fixation map recorded on the same question
+        <a href="#ref-ross">[2]</a>. A reasoning chain comes later, and is not
+        part of this stage.
+      </p>
+
+      <h2>Pipeline</h2>
+      <figure class="diagram">
+        <img src="figures/pipeline.svg" alt="Question and image go through Qwen3-VL. Expected gradients of the answer logit are matched to human gaze, and only LoRA weights are updated." />
+        <figcaption>Stage 1. The gaze map is the training target. The answer text is not.</figcaption>
+      </figure>
+
+      <h2>What is trained</h2>
+      <p>
+        The backbone is Qwen3-VL-2B-Instruct
+        <a href="#ref-qwen">[3]</a>. Only low-rank adapters
+        <a href="#ref-lora">[4]</a> on the attention projections
+        <code>q_proj</code>, <code>k_proj</code>, <code>v_proj</code> and
+        <code>o_proj</code> are updated. The vision tower stays frozen. With
+        1,422 questions, full fine-tuning is not the setting.
+      </p>
+      <p>
+        Attention runs in the eager implementation, and gradient checkpointing
+        is off. The loss is a function of a gradient, so the backward pass has
+        to go through that gradient a second time. Fused attention kernels have
+        no rule for that second backward, and checkpointing throws the graph
+        away. The wrapper refuses to start if either guard is broken.
+      </p>
+
+      <h2>Where the attribution is taken</h2>
+      <p>
+        The Stage 1 prompt ends on the opening <code>&lt;answer&gt;</code> tag.
+        The answer is written into the sequence after that tag, so the next
+        position is the first token of the answer. Attribution targets the
+        logit of that token. It does not target the finished string, and there
+        is no language-model loss in this stage.
+      </p>
+
+      <h2>From pixels to the 16×16 grid</h2>
+      <figure class="diagram">
+        <img src="figures/patch-grid.svg" alt="Sixteen-pixel patches are merged two by two into 32 by 32 visual tokens, unflattened out of merge order, and pooled to a 16 by 16 grid." />
+        <figcaption>Qwen3-VL geometry. One visual token covers 32×32 pixels, not 28×28.</figcaption>
+      </figure>
+      <p>
+        The processor does not hand the model an image tensor. Each row of
+        <code>pixel_values</code> is one patch, and the rows are ordered in
+        merge windows rather than left to right. A direct reshape into a grid
+        scrambles the image. The map is unflattened with the inverse of that
+        permutation, then pooled to 16×16, the resolution of the gaze target.
+        Pixel budgets are counts of visual tokens times 32×32. The method uses
+        between 256 and 512 visual tokens.
+      </p>
+      <p class="note">
+        The first cluster run lowers that budget to 64–128 tokens and uses two
+        baselines instead of five, so the double backward fits in GPU memory.
+        That is a run setting. The method above is unchanged.
+      </p>
+
+      <h2>Expected gradients</h2>
+      <figure class="diagram">
+        <img src="figures/expected-gradients.svg" alt="A black baseline is interpolated toward the image. The gradient of the answer logit is averaged over the baselines and softmaxed into a 16 by 16 distribution." />
+        <figcaption>Expected gradients <a href="#ref-erion">[5]</a>, the differentiable form of SHAP used here. Integrated gradients <a href="#ref-ig">[6]</a> are the single-path special case.</figcaption>
+      </figure>
+      <p>
+        A black image is the baseline: no visual evidence. For each sample an
+        interpolation coefficient is drawn, the baseline is moved toward the
+        real patches, and the gradient of the answer logit with respect to
+        those patches is taken. Averaging five such gradients, multiplying by
+        the distance from the baseline, and summing inside each patch gives one
+        score per patch. After unflattening and pooling, a softmax turns the
+        16×16 scores into a distribution.
+      </p>
+      <p>
+        The implementation does not call Captum. Captum’s gradient SHAP runs
+        <code>backward()</code> without keeping the graph, so the attribution
+        becomes a constant. The loss can fall in the log while the LoRA weights
+        receive no gradient. The same sum is written out here with the graph
+        kept, which is what lets the gaze loss train the adapters.
+      </p>
+
+      <h2>The gaze map</h2>
+      <figure class="diagram">
+        <img src="figures/gaze-bins.svg" alt="A three-second trial. The first second is discarded. Seconds one to two and two to three are kept and summed." />
+        <figcaption>AiR-D <a href="#ref-aird">[7]</a> records three seconds. Training uses the last two.</figcaption>
+      </figure>
+      <p>
+        The question is read before the image appears. When the image comes on,
+        the experiment forces the first fixation to the centre of the screen, so
+        the 0–1&nbsp;s bin is mostly that setup. It is dropped. Fixations in
+        the 1–2&nbsp;s and 2–3&nbsp;s bins are drawn as Gaussians of 9 pixels,
+        about one degree, on a 256×256 map, summed with equal weight, and
+        averaged down to 16×16. Questions and answers come from GQA
+        <a href="#ref-gqa">[8]</a>, photographs from Visual Genome
+        <a href="#ref-vg">[9]</a>. How the set was cut is on the Data tab.
+      </p>
+      <figure class="diagram">
+        <div class="pair">
+          <div>
+            <img src="examples/00137872.jpg" alt="Street scene with traffic lights, used as a method example." />
+            <p class="shot">Image 2371269</p>
+          </div>
+          <div>
+            <img src="examples/00137872_gaze.jpg" alt="The same street scene with human gaze from seconds 1 to 3 overlaid." />
+            <p class="shot">Gaze, seconds 1–3. Question: what device is on the left-hand traffic signal?</p>
+          </div>
+        </div>
+        <figcaption>The right-hand map is the training target for that question. It is not a model prediction. A second question on the same photograph produces a different map; see the Data tab.</figcaption>
+      </figure>
+
+      <h2>Loss</h2>
+      <p>
+        Both maps are distributions over the same 16×16 cells. The loss is a
+        weighted squared error plus a Kullback–Leibler term,
+      </p>
+      <p class="formula">
+        L = weighted MSE(SHAP, gaze; α = 1.1) + λ<sub>KL</sub> · KL(gaze ‖ SHAP),
+        with λ<sub>KL</sub> = 0.1.
+      </p>
+      <p>
+        The weight 1 / (α − gaze) is larger where people looked, so a miss on a
+        fixation costs more than a miss on the empty background. KL(gaze ‖ SHAP)
+        is large where people looked and the model put almost no mass.
+        At 16×16 the weighted error lands near 10<sup>−4</sup> and the weighted
+        KL near 0.15, so under these default weights the run is driven by the
+        KL term.
+      </p>
+
+      <h2>What the numbers mean</h2>
+      <p>
+        After each epoch the validation split is scored with AUC-Judd, the
+        correlation coefficient, and KL
+        <a href="#ref-metrics">[10]</a>. On the test split a uniform map scores
+        AUC-Judd 0.500. A Gaussian at the image centre already scores 0.724.
+        Agreement between human observers is 0.895. A gain counts only above
+        0.724. KL can move the other way: the centre prior is worse on KL than
+        the uniform map, so a falling KL is not by itself a better gaze match.
+      </p>
+
+      <h2>What this stage does not do</h2>
+      <p>
+        The model is not trained to produce the answer, and the test split is
+        not used for checkpointing. The intended second stage samples a
+        <code>&lt;think&gt;</code> / <code>&lt;answer&gt;</code> chain and
+        updates it with group relative policy optimisation
+        <a href="#ref-grpo">[11]</a>. That stage is not built yet. Stage 1 only
+        asks whether the attribution can be pulled onto the gaze map.
+      </p>
+
+      <h2>References</h2>
+      <ol class="refs">
+        <li id="ref-lundberg">Lundberg, S. M. and Lee, S.-I. A unified approach to interpreting model predictions. <em>NeurIPS</em>, 2017.</li>
+        <li id="ref-ross">Ross, A. S., Hughes, M. C., and Doshi-Velez, F. Right for the right reasons: Training differentiable models by constraining their explanations. <em>IJCAI</em>, 2017.</li>
+        <li id="ref-qwen">Qwen Team. Qwen3-VL technical report. arXiv:2511.21631, 2025.</li>
+        <li id="ref-lora">Hu, E. J., Shen, Y., Wallis, P., Allen-Zhu, Z., Li, Y., Wang, S., Wang, L., and Chen, W. LoRA: Low-rank adaptation of large language models. <em>ICLR</em>, 2022.</li>
+        <li id="ref-erion">Erion, G., Janizek, J. D., Sturmfels, P., Lundberg, S. M., and Lee, S.-I. Improving performance of deep learning models with axiomatic attribution priors and expected gradients. <em>Nature Machine Intelligence</em>, 3:620–631, 2021.</li>
+        <li id="ref-ig">Sundararajan, M., Taly, A., and Yan, Q. Axiomatic attribution for deep networks. <em>ICML</em>, 2017.</li>
+        <li id="ref-aird">Chen, S., Jiang, M., Yang, J., and Zhao, Q. AiR: Attention with reasoning capability. <em>ECCV</em>, 2020.</li>
+        <li id="ref-gqa">Hudson, D. A. and Manning, C. D. GQA: A new dataset for real-world visual reasoning and compositional question answering. <em>CVPR</em>, 2019.</li>
+        <li id="ref-vg">Krishna, R., Zhu, Y., Groth, O., Johnson, J., Hata, K., Kravitz, J., Chen, S., Kalantidis, Y., Li, L.-J., Shamma, D. A., Bernstein, M. S., and Fei-Fei, L. Visual Genome: Connecting language and vision using crowdsourced dense image annotations. <em>International Journal of Computer Vision</em>, 123:32–73, 2017.</li>
+        <li id="ref-metrics">Bylinskii, Z., Judd, T., Oliva, A., Torralba, A., and Durand, F. What do different evaluation metrics tell us about saliency models? <em>IEEE Transactions on Pattern Analysis and Machine Intelligence</em>, 41(3):740–757, 2019.</li>
+        <li id="ref-grpo">Shao, Z., Wang, P., Zhu, Q., Xu, R., Song, J., Zhang, M., Li, Y. K., Wu, Y., and Guo, D. DeepSeekMath: Pushing the limits of mathematical reasoning in open language models. arXiv:2402.03300, 2024.</li>
+      </ol>
     </section>
 
     <section id="data" class="tab hidden">

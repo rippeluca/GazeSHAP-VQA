@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 180" role="img" aria-labelledby="binsTitle binsDesc">
+  <title id="binsTitle">Which seconds of gaze are kept</title>
+  <desc id="binsDesc">The three-second trial is split into one-second bins. The first second is discarded. The second and third seconds are summed into the training map.</desc>
+  <rect width="920" height="180" fill="#f7f4ee"/>
+  <line x1="70" y1="78" x2="850" y2="78" stroke="#e4ddd2" stroke-width="8" stroke-linecap="round"/>
+  <line x1="330" y1="78" x2="850" y2="78" stroke="#8c3d2a" stroke-width="8"/>
+  <g font-family="Palatino, Georgia, serif" font-size="14" text-anchor="middle" fill="#1c1915">
+    <text x="200" y="48">0-1 s</text>
+    <text x="200" y="112" fill="#5c564c">discarded</text>
+    <text x="200" y="132" fill="#5c564c">forced centre fixation</text>
+    <text x="460" y="48">1-2 s</text>
+    <text x="460" y="112">kept</text>
+    <text x="720" y="48">2-3 s</text>
+    <text x="720" y="112">kept</text>
+  </g>
+  <text x="460" y="158" font-size="13" font-family="Palatino, Georgia, serif" fill="#5c564c" text-anchor="middle">Equal-weight sum, Gaussian sigma = 9 px on 256 by 256, then 16 by 16</text>
+  <circle cx="70" cy="78" r="5" fill="#1c1915"/>
+  <circle cx="850" cy="78" r="5" fill="#1c1915"/>
+  <text x="70" y="28" font-size="13" font-family="Palatino, Georgia, serif" text-anchor="middle" fill="#5c564c">image on</text>
+  <text x="850" y="28" font-size="13" font-family="Palatino, Georgia, serif" text-anchor="middle" fill="#5c564c">image off</text>
+</svg>
