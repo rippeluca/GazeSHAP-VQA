@@ -26,10 +26,12 @@ export WANDB_MODE="${WANDB_MODE:-online}"
 export TOKENIZERS_PARALLELISM=false
 mkdir -p "$HF_HOME"
 
-echo "host=$(hostname) python=$(command -v python)"
-python -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())"
+PY="${PY:-/user/esba3078/.conda/envs/medvqa_hf/bin/python}"
 
-srun python scripts/train_stage1.py --config configs/stage1_shap_gaze.yaml \
+echo "host=$(hostname) python=$PY"
+"$PY" -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())"
+
+srun "$PY" scripts/train_stage1.py --config configs/stage1_shap_gaze.yaml \
   run_id=stage1_answer \
   training.per_device_train_batch_size=1 \
   shap.n_baselines=2 \
