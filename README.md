@@ -14,9 +14,9 @@ The first run attributes the logit of the first answer token, at the position ri
 
 The second run keeps the same loss, the same LoRA targets, and the same 64–128 visual tokens, and attributes the sum of the logits over every token of the teacher-forced answer. Correlation rises to 0.122, close to the centre prior’s 0.136. AUC-Judd falls to 0.529. KL stays at 1.70. The adapters can move the map. They do not put the fixation locations at the top of the ranking.
 
-The figure is the second run, the adapter at the end of that run, on three questions. Left is the fixation density from seconds 1–3. The middle column is that density pooled to the 16×16 grid the loss sees. Right is the SHAP map for the sum of the answer logits. The middle and right columns share one colour scale, set by the brightest gaze cell of that question. A uniform cell holds 0.0039 of the mass. These SHAP maps peak between 0.005 and 0.011, so the right column stays faint. On the three questions AUC-Judd is 0.664, 0.540 and 0.564. The validation mean over 155 questions is 0.529.
+The figure is the second run, the adapter at the end of that run, on three questions. Left is the fixation density from seconds 1–3. The middle column is that density pooled to the 16×16 grid the loss sees. Right is the SHAP map for the sum of the answer logits. A uniform cell holds 0.0039 of the mass. These three maps peak at 0.006, 0.005 and 0.011, only 1.3 to 2.7 times a uniform cell, so on the gaze scale the right column is blank. It is stretched from its own coldest cell to its own hottest cell. The colour there is the location of the peak, not its strength. The peaks miss the gaze: sky above the road, the right edge of the traffic, the right edge of the kitchen. On the three questions AUC-Judd is 0.664, 0.540 and 0.564. The validation mean over 155 questions is 0.529.
 
-![Three questions in three columns: smooth human gaze, the same gaze on a 16 by 16 grid, and the trained SHAP map.](site/figures/gaze-shap.jpg)
+![Three questions in three columns: smooth human gaze, the same gaze on a 16 by 16 grid, and the trained SHAP map stretched to its own range.](site/figures/gaze-shap.jpg)
 
 ## How a map was produced
 
