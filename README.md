@@ -1,8 +1,4 @@
-# The Answer Logit Does Not Land on the Gaze
-
-**GazeSHAP-VQA** · SHAP on a visual question, matched to the fixation map for that question
-
-Luca Rippe
+# **GazeSHAP-VQA** · SHAP on a visual question, matched to the fixation map for that question
 
 Stage 1 trains Qwen3-VL-2B so that a differentiable SHAP map for the answer logits sits on the regions people looked at while answering the same question. Two runs on the AiR-D validation split do not clear a Gaussian at the image centre. AUC-Judd stays just above a uniform map.
 
