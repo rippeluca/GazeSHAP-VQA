@@ -54,8 +54,9 @@
       </p>
       <p>
         The supervision signal is a SHAP map
-        <a href="#ref-lundberg">[1]</a> for the logit of the answer’s first
-        token, matched to the human fixation map recorded on the same question
+        <a href="#ref-lundberg">[1]</a> for the sum of the logits over the
+        teacher-forced answer, matched to the human fixation map recorded on
+        the same question
         <a href="#ref-ross">[2]</a>. A reasoning chain comes later, and is not
         part of this stage.
       </p>
@@ -85,11 +86,13 @@
 
       <h2>Where the attribution is taken</h2>
       <p>
-        The Stage 1 prompt ends on the opening <code>&lt;answer&gt;</code> tag.
-        The answer is written into the sequence after that tag, so the next
-        position is the first token of the answer. Attribution targets the
-        logit of that token. It does not target the finished string, and there
-        is no language-model loss in this stage.
+        The Stage 1 prompt ends on the opening <code>&lt;answer&gt;</code> tag,
+        and the ground-truth answer is written in after it. Attribution targets
+        the sum of the logits of those answer tokens. There is no language-model
+        loss in this stage. An earlier run targeted only the first answer token.
+        On the validation split that run reached AUC-Judd 0.539. The sum over
+        the whole answer reached 0.529, with correlation 0.122. Neither cleared
+        the centre prior of 0.724.
       </p>
 
       <h2>From pixels to the 16×16 grid</h2>

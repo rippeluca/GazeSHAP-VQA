@@ -1,104 +1,88 @@
-# GazeSHAP-VQA
+# The Answer Logit Does Not Land on the Gaze
 
-Gaze-supervised SHAP training for Visual Question Answering with explicit
-reasoning chains.
+**GazeSHAP-VQA** · SHAP on a visual question, matched to the fixation map for that question
 
-A VQA model is trained to be *right for the right reasons*: its SHAP attribution
-over the image is aligned with the human fixation heatmap recorded while people
-answered the **same question** (AiR-D eye-tracking data), before a reasoning
-chain and an answer are generated on top.
+Luca Rippe
 
-## Status
+Stage 1 trains Qwen3-VL-2B so that a differentiable SHAP map for the answer logits sits on the regions people looked at while answering the same question. Two runs on the AiR-D validation split do not clear a Gaussian at the image centre. AUC-Judd stays just above a uniform map.
 
-Milestone 1 (Stage 1) is implemented and verified end to end on
-`Qwen/Qwen3-VL-2B-Instruct` with the real AiR-D data: data pipeline,
-`VLMWrapper` with the eager-attention guard, differentiable expected gradients,
-alignment metrics, and the SHAP-gaze alignment trainer. GRPO, the faithfulness
-suite and the dashboard are not built yet.
+| **1,422** | **987** | **0.724** | **0.539** | **0.529** |
+|---|---|---|---|---|
+| questions | images | centre prior, AUC-Judd | first answer token | sum of the answer tokens |
 
-Reference points on the test split (272 questions): a uniform map scores
-AUC-Judd 0.500, the centre-prior control 0.724, and human inter-subject
-agreement 0.895. The interesting band is narrow and every result must be read
-against 0.724, not 0.5.
+The band that matters runs from the centre prior, 0.724, to human agreement between observers, 0.895. A uniform map scores 0.500. Both runs are read against 0.724. The numbers above are validation, 155 questions, not the held-out test split.
 
-## Setup
+## The map moves, and the ranking does not
+
+The first run attributes the logit of the first answer token, at the position right after a teacher-forced `<answer>` tag. Validation AUC-Judd is 0.539, correlation 0.042, KL(gaze ‖ SHAP) 1.707. A uniform map has KL 1.62. The centre prior, which wins on AUC-Judd, has KL 8.27. The loss that was minimised and the metric that would count a result pull in different directions.
+
+The second run keeps the same loss, the same LoRA targets, and the same 64–128 visual tokens, and attributes the sum of the logits over every token of the teacher-forced answer. Correlation rises to 0.122, close to the centre prior’s 0.136. AUC-Judd falls to 0.529. KL stays at 1.70. The adapters can move the map. They do not put the fixation locations at the top of the ranking.
+
+The photograph below is the supervision target for one question, not a model map. Ten observers, seconds 1–3. The question is what device sits on the traffic signal at the left.
+
+![Street scene at dusk. The same photograph with human gaze from seconds 1–3 drawn on the right-hand copy.](site/examples/00137872_gaze.jpg)
+
+## How a map was produced
+
+The question is read before the image appears. The image is on for three seconds. The first second is discarded, because the trial forces the opening fixation to the centre of the screen. Fixations in the next two seconds are drawn as Gaussians of 9 px on a 256×256 map and pooled to 16×16. Splits are cut by image, 70/10/20.
+
+```mermaid
+flowchart TD
+  A["Question and image"] --> B["Qwen3-VL-2B, LoRA on attention"]
+  B --> C["Logits of the teacher-forced answer"]
+  C --> D["Expected gradients over the patches"]
+  D --> E["16 by 16 SHAP map"]
+  F["Human gaze, seconds 1 to 3, 16 by 16"] --> G["Weighted squared error plus KL"]
+  E --> G
+  G --> H["Update the LoRA weights only"]
+```
+
+One visual token covers 32×32 pixels. `pixel_values` is a merge-window patch sequence, not an image tensor. Expected gradients use a black baseline and keep the graph, so the loss can reach the adapters. Captum’s gradient SHAP does not. The vision tower stays frozen. Attention is eager, and gradient checkpointing is off, because the loss is a second derivative.
+
+Under the default weights the KL term is about a thousand times the weighted squared error, so both runs were driven by KL(gaze ‖ SHAP). The cluster runs used two baselines and 64–128 visual tokens so the double backward fit in GPU memory. The method as specified uses five baselines and 256–512 tokens.
+
+A short site with the data description and this pipeline is at [acul01.github.io/GazeSHAP-VQA](https://acul01.github.io/GazeSHAP-VQA/).
+
+## Scope
+
+Two runs, one validation split, one backbone, LoRA only. No reasoning chain was trained, and these numbers are not test-set numbers. The loss that moved is not the metric that would place a result between 0.724 and 0.895. The runs say where this attribution sits. They do not say that the model answers from the regions that carry the answer.
+
+## Materials
+
+Images are Visual Genome photographs (Krishna et al., IJCV 2017, CC BY 4.0), used through GQA (Hudson and Manning, CVPR 2019). Eye tracking is AiR-D (Chen, Jiang, Yang and Zhao, ECCV 2020). The raw images and gaze archives are not in this repository.
+
+<details>
+<summary>Files and how to regenerate a run</summary>
+
+| Path | What it holds |
+|---|---|
+| `src/models/shap_module.py` | Expected gradients with the graph kept |
+| `src/models/patch_grid.py` | Undo the merge-window patch order |
+| `src/training/losses.py` | Weighted squared error and KL(gaze ‖ SHAP) |
+| `src/data/` | Download, gaze maps, image-level splits |
+| `configs/stage1_shap_gaze.yaml` | The Stage 1 training config |
+| `data/processed/splits/` | Train, validation, and test question ids |
+| `site/` | Data and method pages, including the gaze example above |
+| `tests/` | CPU suite, including the gradient-flow check |
 
 ```bash
 uv venv --python 3.11 .venv
 uv pip install --python .venv/bin/python -e ".[dev]"
+pytest tests/ -q --device cpu
 ```
 
-On a CUDA node, add the training and evaluation extras:
+On a CUDA machine, install the training extras from the cu124 index and point `PY` at that interpreter:
 
 ```bash
 uv pip install --python .venv/bin/python \
   --extra-index-url https://download.pytorch.org/whl/cu124 \
   -e ".[dev,train,eval]"
-```
-
-## Pipeline
-
-```bash
-python scripts/download_data.py --data-root data      # AiR-D + GQA + VG images
-python scripts/preprocess_gaze.py --validate          # Path B vs Path A, CC ~0.96
-python scripts/preprocess_gaze.py --data-root data    # fixation maps -> 16x16
-python scripts/make_splits.py --data-root data        # image-level 70/10/20
-python scripts/check_double_backward.py               # once per machine
+python scripts/download_data.py --data-root data
+python scripts/preprocess_gaze.py --data-root data
+python scripts/check_double_backward.py
 python scripts/train_stage1.py --config configs/stage1_shap_gaze.yaml
 ```
 
-On the cluster: `sbatch slurm/stage1.sbatch`. Fill in the partition and module
-names at the top of `slurm/stage1.sbatch` and `slurm/setup_env.sh` first.
+The download is about 500 MB: AiR-D, the GQA balanced validation questions extracted from a zip over HTTP range requests, and 987 Visual Genome images. `docker compose run --rm test` runs the CPU suite. A GPU image is `Dockerfile.cuda`.
 
-The download fetches roughly 500 MB: AiR-D (154 MB), the GQA balanced validation
-questions (114 MB, extracted from a 1.5 GB zip over HTTP range requests) and 987
-Visual Genome images (143 MB, instead of GQA's 21.8 GB image archive).
-
-## Docker
-
-The CPU image runs the test suite and does not need a GPU:
-
-```bash
-docker compose build test
-docker compose run --rm test
-```
-
-The CUDA image is for a GPU node (target: one A100 40GB):
-
-```bash
-docker build -f Dockerfile.cuda -t gazeshap-vqa:cuda .
-docker run --gpus all -v "$PWD/data:/app/data" -v hf:/app/.cache/huggingface \
-  gazeshap-vqa:cuda
-```
-
-## Tests
-
-```bash
-pytest tests/ -v --device cpu
-```
-
-The suite runs on CPU with synthetic fixtures and needs no downloaded data. The
-test that matters most is the gradient-flow assertion in
-`tests/test_shap_module.py`: it fails if the attribution stops being
-differentiable with respect to the LoRA parameters.
-
-## Site
-
-A short project page with a Data tab (sources, how the trials were recorded,
-descriptive statistics, and six example photographs with the human gaze
-overlay) lives in `site/` and is published with GitHub Pages from `main`.
-
-Regenerate the figures after the raw data changes:
-
-```bash
-python scripts/build_data_gallery.py
-```
-
-## Data and licensing
-
-Images come from Visual Genome (CC BY 4.0) via GQA. See
-[data/README.md](data/README.md) for provenance and attribution requirements.
-
-- AiR-D: Chen, Jiang, Yang & Zhao, *AiR: Attention with Reasoning Capability*, ECCV 2020
-- GQA: Hudson & Manning, CVPR 2019
-- Visual Genome: Krishna et al., IJCV 2017
+</details>

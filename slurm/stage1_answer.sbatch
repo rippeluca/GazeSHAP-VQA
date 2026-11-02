@@ -3,8 +3,9 @@
 # Same memory settings as the run that fit on this cluster (batch 1, 2 baselines,
 # 64-128 visual tokens).
 #
-# Submit from the repo root on the login node:
-#   sbatch slurm/stage1_answer.sbatch
+# Submit from the repo root on a login node. PY must be an interpreter whose
+# torch build can see the GPU. WANDB_ENTITY is optional.
+#   PY=/path/to/python sbatch --export=ALL slurm/stage1_answer.sbatch
 #
 #SBATCH --job-name=gazeshap-s1ans
 #SBATCH --partition=all_gpu.p
@@ -21,12 +22,14 @@ cd "${SLURM_SUBMIT_DIR:-$(pwd)}"
 mkdir -p logs
 
 export HF_HOME="${HF_HOME:-$PWD/.cache/huggingface}"
-export WANDB_ENTITY="${WANDB_ENTITY:-lucarippe-personal}"
 export WANDB_MODE="${WANDB_MODE:-online}"
 export TOKENIZERS_PARALLELISM=false
 mkdir -p "$HF_HOME"
 
-PY="${PY:-/user/esba3078/.conda/envs/medvqa_hf/bin/python}"
+if [ -z "${PY:-}" ]; then
+  echo "Set PY to a Python whose torch build can see the GPU." >&2
+  exit 1
+fi
 
 echo "host=$(hostname) python=$PY"
 "$PY" -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())"
