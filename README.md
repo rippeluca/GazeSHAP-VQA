@@ -14,9 +14,9 @@ The first run attributes the logit of the first answer token, at the position ri
 
 The second run keeps the same loss, the same LoRA targets, and the same 64–128 visual tokens, and attributes the sum of the logits over every token of the teacher-forced answer. Correlation rises to 0.122, close to the centre prior’s 0.136. AUC-Judd falls to 0.529. KL stays at 1.70. The adapters can move the map. They do not put the fixation locations at the top of the ranking.
 
-The photograph below is the supervision target for one question, not a model map. Ten observers, seconds 1–3. The question is what device sits on the traffic signal at the left.
+The figure is the second run, the adapter at the end of that run, on three questions. Left is the human gaze on the 16×16 grid. Right is the SHAP map for the sum of the answer logits, two black baselines, 64–128 visual tokens. Both columns use one colour scale, set by the brightest gaze cell. A uniform cell holds 0.0039 of the mass. These SHAP maps peak between 0.005 and 0.011, so on that scale they stay faint. On the three questions AUC-Judd is 0.664, 0.540 and 0.564. The validation mean over 155 questions is 0.529.
 
-![Street scene at dusk. The same photograph with human gaze from seconds 1–3 drawn on the right-hand copy.](site/examples/00137872_gaze.jpg)
+![Three questions. Left, human gaze on a 16 by 16 grid. Right, the trained SHAP map on the same colour scale.](site/figures/gaze-shap.jpg)
 
 ## How a map was produced
 
@@ -58,7 +58,8 @@ Images are Visual Genome photographs (Krishna et al., IJCV 2017, CC BY 4.0), use
 | `src/data/` | Download, gaze maps, image-level splits |
 | `configs/stage1_shap_gaze.yaml` | The Stage 1 training config |
 | `data/processed/splits/` | Train, validation, and test question ids |
-| `site/` | Data and method pages, including the gaze example above |
+| `site/` | Data and method pages, and the gaze-versus-SHAP figure above |
+| `scripts/render_example_shap.py` | Renders those three SHAP maps from a Stage 1 adapter |
 | `tests/` | CPU suite, including the gradient-flow check |
 
 ```bash
