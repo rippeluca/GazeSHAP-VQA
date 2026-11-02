@@ -14,9 +14,9 @@ The first run attributes the logit of the first answer token, at the position ri
 
 The second run keeps the same loss, the same LoRA targets, and the same 64–128 visual tokens, and attributes the sum of the logits over every token of the teacher-forced answer. Correlation rises to 0.122, close to the centre prior’s 0.136. AUC-Judd falls to 0.529. KL stays at 1.70. The adapters can move the map. They do not put the fixation locations at the top of the ranking.
 
-The figure is the second run, the adapter at the end of that run, on three questions. Left is the human gaze on the 16×16 grid. Right is the SHAP map for the sum of the answer logits, two black baselines, 64–128 visual tokens. Both columns use one colour scale, set by the brightest gaze cell. A uniform cell holds 0.0039 of the mass. These SHAP maps peak between 0.005 and 0.011, so on that scale they stay faint. On the three questions AUC-Judd is 0.664, 0.540 and 0.564. The validation mean over 155 questions is 0.529.
+The figure is the second run, the adapter at the end of that run, on three questions. Left is the fixation density from seconds 1–3. The middle column is that density pooled to the 16×16 grid the loss sees. Right is the SHAP map for the sum of the answer logits. The middle and right columns share one colour scale, set by the brightest gaze cell of that question. A uniform cell holds 0.0039 of the mass. These SHAP maps peak between 0.005 and 0.011, so the right column stays faint. On the three questions AUC-Judd is 0.664, 0.540 and 0.564. The validation mean over 155 questions is 0.529.
 
-![Three questions. Left, human gaze on a 16 by 16 grid. Right, the trained SHAP map on the same colour scale.](site/figures/gaze-shap.jpg)
+![Three questions in three columns: smooth human gaze, the same gaze on a 16 by 16 grid, and the trained SHAP map.](site/figures/gaze-shap.jpg)
 
 ## How a map was produced
 
